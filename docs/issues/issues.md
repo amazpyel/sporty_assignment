@@ -4,7 +4,7 @@
 **Severity:** Critical<br>
 
 **Preconditions**<br>
-Balance is reset via `POST /api/reset-balance`. The actual balance is €120.00 (see SBP-5).
+Balance is reset via `POST /api/reset-balance`. The actual balance is 120.00 EUR (see SBP-6).
 
 **Reproduction Steps**<br>
 1. Call `POST /api/place-bet` with a valid `x-user-id` header and body:
