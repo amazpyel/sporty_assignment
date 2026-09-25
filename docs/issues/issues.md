@@ -1,37 +1,31 @@
 # Issues
 
-## SBP-1 Bet exceeding available balance is accepted, resulting in negative balance
+## SBP-1 Bet exceeding available balance is accepted by API, resulting in negative balance
 **Severity:** Critical<br>
 
 **Preconditions**<br>
-Balance is reset via `POST /api/reset-balance`. The actual balance is 120.00 EUR (see SBP-6).
+Balance is reset via `POST /api/reset-balance`. The actual balance is €120.00 (see SBP-5).
 
 **Reproduction Steps**<br>
-1. Place a bet with a stake of 100.00 EUR. The balance becomes 20.00 EUR:
-{
-    "matchId": "championship-leeds-norwich-2026-09-25",
-    "selection": "HOME",
-    "stake": 100.00
-}
-2. Place a second bet on match `championship-leeds-norwich-2026-09-25`, selection HOME, with a stake of 21.00 EUR.
-{
-    "matchId": "championship-leeds-norwich-2026-09-25",
-    "selection": "HOME",
-    "stake": 21.00
-}
-3. Check the response and the balance in the UI header.
+1. Call `POST /api/place-bet` with a valid `x-user-id` header and body:
+   {"matchId": "championship-leeds-norwich-2026-09-25", "selection": "HOME", "stake": 100}
+   The response returns balance 20.
+2. Call `POST /api/place-bet` with the same `x-user-id` and body:
+   {"matchId": "championship-leeds-norwich-2026-09-25", "selection": "HOME", "stake": 21}
+3. Check the response.
+4. Open the betting app and check the balance in the header.
 
 **Expected result**<br>
-the API returns **422**, and the balance remains 20.00 EUR (spec section 4.1: stake must not exceed available balance).
+The second request is rejected with 422 and an insufficient balance error. The balance remains 20.00 EUR (spec section 4.1: stake must not exceed available balance; UI + API).
 
 **Actual result**<br>
-The bet is accepted, and the balance becomes negative:
+The API returns 200 and places the bet:
 {"message": "Bet placed successfully", "matchId": "championship-leeds-norwich-2026-09-25", "selection": "HOME", "stake": 21, "odds": 2.05, "payout": 43.05, "balance": -1, "currency": "USD"}
 
-The UI header shows "Balance: -1.00 EUR".
+The balance becomes negative, and the UI header shows "Balance: -1.00 EUR".
 
 **Business Impact:**<br>
-Users can bet more than their available funds and go into a negative balance, which is effectively unsecured credit gambling. This causes direct financial loss and a regulatory breach.
+Users can bet more than their available funds via the API and go into a negative balance, which is effectively unsecured credit gambling. This causes direct financial loss and a regulatory breach.
 
 **Evidence**<br>
 ![Negative balance](negative_balance_1.png)
