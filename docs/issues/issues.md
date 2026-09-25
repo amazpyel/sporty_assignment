@@ -1,6 +1,42 @@
 # Issues
 
-## SBP-1 Balance is not updated after placing a bet
+## SBP-1 Bet exceeding available balance is accepted, resulting in negative balance
+**Severity:** Critical<br>
+
+**Preconditions**<br>
+Balance is reset via `POST /api/reset-balance`. The actual balance is 120.00 EUR (see SBP-6).
+
+**Reproduction Steps**<br>
+1. Place a bet with a stake of 100.00 EUR. The balance becomes 20.00 EUR:
+{
+    "matchId": "championship-leeds-norwich-2026-09-25",
+    "selection": "HOME",
+    "stake": 100.00
+}
+2. Place a second bet on match `championship-leeds-norwich-2026-09-25`, selection HOME, with a stake of 21.00 EUR.
+{
+    "matchId": "championship-leeds-norwich-2026-09-25",
+    "selection": "HOME",
+    "stake": 21.00
+}
+3. Check the response and the balance in the UI header.
+
+**Expected result**<br>
+the API returns **422**, and the balance remains 20.00 EUR (spec section 4.1: stake must not exceed available balance).
+
+**Actual result**<br>
+The bet is accepted, and the balance becomes negative:
+{"message": "Bet placed successfully", "matchId": "championship-leeds-norwich-2026-09-25", "selection": "HOME", "stake": 21, "odds": 2.05, "payout": 43.05, "balance": -1, "currency": "USD"}
+
+The UI header shows "Balance: -1.00 EUR".
+
+**Business Impact:**<br>
+Users can bet more than their available funds and go into a negative balance, which is effectively unsecured credit gambling. This causes direct financial loss and a regulatory breach.
+
+**Evidence**<br>
+![Negative balance](negative_balance_1.png)
+
+## SBP-2 Balance is not updated after placing a bet
 **Severity:** Critical<br>
 
 **Preconditions**<br>
@@ -26,7 +62,7 @@ Users can place unlimited bets without funds and push their balance negative, ca
 **Evidence**<br>
 ![Negative balance](negative_balance.png)
 
-## SBP-2 Potential payout calculation is incorrect in Bet Receipt
+## SBP-3 Potential payout calculation is incorrect in Bet Receipt
 **Severity:** Critical<br>
 
 **Preconditions**<br>
@@ -51,7 +87,7 @@ Customers receive an incorrect record of their potential winnings, leading to se
 **Evidence**<br>
 ![Incorrect potential payout](wrong_payout.png)
 
-## SBP-3 Past matches are available for betting
+## SBP-4 Past matches are available for betting
 **Severity:** Critical <br>
 
 **Reproduction Steps**<br>
@@ -70,7 +106,7 @@ Users can bet on matches with already-known results, guaranteeing wins and causi
 **Evidence**<br>
 ![Past match](past_events.png)
 
-## SBP-4 Spec conflict: minimum stake defined as both 1.00 EUR and 1.01 EUR
+## SBP-5 Spec conflict: minimum stake defined as both 1.00 EUR and 1.01 EUR
 **Severity:** Medium<br>
 
 **Description**<br>
@@ -92,7 +128,7 @@ sections 3 and 4.4 state 1.00 EUR, while section 4.1 states 1.01 EUR.
 **Business Impact:**<br>
 Ambiguous requirement may lead to inconsistent stake validation between UI and API, causing occasional rejected minimum bets and customer confusion; no direct financial loss.
 
-## SBP-5 Reset balance response does not match persisted balance
+## SBP-6 Reset balance response does not match persisted balance
 **Severity:** Medium<br>
 
 **Preconditions**<br>
@@ -121,7 +157,7 @@ Users receive 5.50 EUR less than the configured reset amount while the API confi
 **Evidence**<br>
 ![Incorrect balance](balance_after_reset.png)
 
-## SBP-6 Negative stake is accepted by API and increases user balance
+## SBP-7 Negative stake is accepted by API and increases user balance
 **Severity:** Critical<br>
 
 **Preconditions**<br>
@@ -148,7 +184,7 @@ Any user can add unlimited funds to their balance with a single API call and wit
 **Evidence**<br>
 ![incorrect balance](incorrect_balance.png)
 
-## SBP-7 Place bet response returns wrong currency (USD instead of EUR)
+## SBP-8 Place bet response returns wrong currency (USD instead of EUR)
 **Severity:** Medium<br>
 
 **Preconditions**<br>
@@ -169,7 +205,7 @@ The place-bet response returns `"currency": "USD"`, while `/balance` and `/reset
 **Business Impact:**<br>
 Bet transactions are recorded with the wrong currency, which risks incorrect amounts being displayed to customers, wrong conversions in downstream reporting and accounting, and inconsistent financial records.
 
-## SBP-8 Home and away teams are swapped on the bet receipt
+## SBP-9 Home and away teams are swapped on the bet receipt
 **Severity:** Low<br>
 
 **Preconditions**<br>
