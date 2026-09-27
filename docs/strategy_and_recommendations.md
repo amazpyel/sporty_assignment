@@ -79,7 +79,7 @@ Requests.
   maximum stake boundaries, zero and negative stakes, too many decimals, an unknown `matchId`, an
   invalid selection, a missing `x-user-id` header, and the response currency ([SBP-9](issues/issues.md#sbp-9)).
   These tests are fast and stable, and they cover each rule where it is enforced.
-- Add contract tests against `open_api_spec.json`. The Pydantic models already check responses; generating
+- Add contract tests against the OpenAPI spec. The Pydantic models already check responses; generating
   them from the OpenAPI spec, or using a tool like Schemathesis, would catch mismatches between the spec
   and the API automatically.
 
