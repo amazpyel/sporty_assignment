@@ -1,5 +1,7 @@
 # Sporty Group Home Test: Single Bet Placement
 
+**Author:** Oleksandr Pylkevych pylkevych@sent.com
+
 This repository is my submission for the Sporty Group Home Test. It covers QA work on the
 Single Bet Placement feature of a desktop web app that simulates a sports betting flow.
 

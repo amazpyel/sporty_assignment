@@ -2,6 +2,7 @@
 name = "sporty-automation"
 version = "0.1.0"
 description = "E2E and API test automation for the Single Bet Placement feature"
+authors = [{ name = "Oleksandr Pylkevych", email = "pylkevych@sent.com" }]
 requires-python = ">=3.11"
 dependencies = [
     "selenium>=4.27",
