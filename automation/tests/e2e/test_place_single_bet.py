@@ -1,0 +1,112 @@
+from dataclasses import dataclass
+from decimal import Decimal
+
+import pytest
+
+from ui.pages.bet_slip import BetSlip
+from ui.pages.match_list_page import MatchListPage
+from ui.pages.receipt_modal import ReceiptModal
+
+STAKE = Decimal("10.00")
+
+
+@dataclass
+class BetFlowResult:
+    slip_teams: str
+    slip_market: str
+    slip_odds: Decimal
+    slip_total_stake: Decimal
+    slip_potential_payout: Decimal
+    placing_state_shown: bool
+    receipt_bet_id_present: bool
+    receipt_selection_shown: bool
+    receipt_match: str
+    receipt_stake: Decimal
+    receipt_odds: Decimal
+    receipt_payout: Decimal
+    receipt_timestamp_present: bool
+    slip_empty_after_close: bool
+    balance_after: Decimal
+
+
+@pytest.mark.e2e
+def test_place_single_bet(driver, base_ui_url, user_id, api_client):
+    """Spec sections 2.1-2.4: select odds, stake 10.00, place a bet, see the receipt.
+
+    Expected to currently fail:
+    - payout shows stake x 2 instead of stake x odds (SBP-3)
+    - the receipt's home/away order can be swapped (SBP-11), and it has no
+      dedicated Selection field at all (same underlying gap)
+    - the balance is left unchanged instead of being deducted (SBP-2)
+    """
+    b0 = Decimal(str(api_client.get_balance().balance))
+
+    match_list = MatchListPage(driver, base_ui_url)
+    match_list.open(user_id)
+    match = match_list.find_first_upcoming_match()
+    match_list.click_home_odds(match.match_id)
+
+    slip = BetSlip(driver, base_ui_url)
+    slip.enter_stake(str(STAKE))
+
+    slip_teams = slip.selection_teams()
+    slip_market = slip.selection_market()
+    slip_odds = slip.selection_odds()
+    slip_total_stake = slip.total_stake()
+    slip_potential_payout = slip.potential_payout()
+
+    slip.click_place_bet()
+    placing_state_shown = slip.is_placing()
+
+    receipt = ReceiptModal(driver, base_ui_url)
+    receipt.wait_until_visible()
+
+    receipt_bet_id = receipt.bet_id()
+    receipt_selection_shown = receipt.shows_selection_field()
+    receipt_match = receipt.match()
+    receipt_stake = receipt.stake()
+    receipt_odds = receipt.odds()
+    receipt_payout = receipt.payout()
+    receipt_placed_at = receipt.placed_at()
+    receipt.close()
+
+    slip_empty_after_close = slip.is_empty()
+    balance_after = match_list.header_balance()
+
+    expected_match_text = f"{match.home_team} vs {match.away_team}"
+
+    actual = BetFlowResult(
+        slip_teams=slip_teams,
+        slip_market=slip_market,
+        slip_odds=slip_odds,
+        slip_total_stake=slip_total_stake,
+        slip_potential_payout=slip_potential_payout,
+        placing_state_shown=placing_state_shown,
+        receipt_bet_id_present=bool(receipt_bet_id),
+        receipt_selection_shown=receipt_selection_shown,
+        receipt_match=receipt_match,
+        receipt_stake=receipt_stake,
+        receipt_odds=receipt_odds,
+        receipt_payout=receipt_payout,
+        receipt_timestamp_present=bool(receipt_placed_at),
+        slip_empty_after_close=slip_empty_after_close,
+        balance_after=balance_after,
+    )
+    expected = BetFlowResult(
+        slip_teams=expected_match_text,
+        slip_market="Match Winner: Home",
+        slip_odds=match.home_odds,
+        slip_total_stake=STAKE,
+        slip_potential_payout=match.home_odds * STAKE,
+        placing_state_shown=True,
+        receipt_bet_id_present=True,
+        receipt_selection_shown=True,
+        receipt_match=expected_match_text,
+        receipt_stake=STAKE,
+        receipt_odds=match.home_odds,
+        receipt_payout=match.home_odds * STAKE,
+        receipt_timestamp_present=True,
+        slip_empty_after_close=True,
+        balance_after=b0 - STAKE,
+    )
+    assert actual == expected

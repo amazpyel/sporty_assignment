@@ -1,0 +1,50 @@
+[project]
+name = "sporty-automation"
+version = "0.1.0"
+description = "E2E and API test automation for the Single Bet Placement feature"
+requires-python = ">=3.11"
+dependencies = [
+    "selenium>=4.27",
+    "requests>=2.32",
+    "pydantic>=2.12.5,<3",
+    "pytest>=8.3",
+    "ruff>=0.7",
+    "allure-pytest>=2.15.3,<3",
+    "python-dotenv>=1.2.3",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "--alluredir=allure-results --clean-alluredir"
+verbosity_assertions = 2  # full assertion diffs without -vv
+markers = [
+    "api: direct API validation/business-rule checks",
+    "e2e: end-to-end UI journeys via Selenium"
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle
+    "F",   # pyflakes
+    "I",   # import sorting
+    "UP",  # pyupgrade
+    "B",   # bugbear
+    "SIM", # simplification
+    "C90", # complexity
+    "ARG", # unused arguments
+    "T20", # print statements
+    "PT"   # pytest-specific rules
+]
+
+ignore = [
+    "E501",   # line length handled separately
+]
+
