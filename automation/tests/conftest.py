@@ -7,12 +7,20 @@ from pathlib import Path
 import allure
 import pytest
 from dotenv import load_dotenv
+from selenium.webdriver.remote.webdriver import WebDriver
 
 from api_client.betting_client import BettingApiClient
-from ui.driver_factory import build_chrome_driver
+from ui.driver_factory import (
+    DEFAULT_BROWSER,
+    DEFAULT_WINDOW_HEIGHT,
+    DEFAULT_WINDOW_WIDTH,
+    SUPPORTED_BROWSERS,
+    DriverConfig,
+    build_driver,
+)
+from ui.reporting import attach_screenshot
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-SCREENSHOT_DIR = PROJECT_ROOT / "reports" / "screenshots"
 
 # Real environment variables take precedence over .env.
 load_dotenv(PROJECT_ROOT / ".env")
@@ -29,7 +37,16 @@ def _required_env(name: str) -> str:
     return value
 
 
-def pytest_sessionstart(session):  # noqa: ARG001
+def pytest_addoption(parser):
+    parser.addoption(
+        "--browser",
+        default=os.environ.get("BROWSER", DEFAULT_BROWSER),
+        help=f"Browser for UI tests: {', '.join(SUPPORTED_BROWSERS)} "
+        f"(default: BROWSER env var, else {DEFAULT_BROWSER})",
+    )
+
+
+def pytest_sessionstart(session):
     """
     Generate Allure environment metadata and executor files.
     """
@@ -48,6 +65,9 @@ def pytest_sessionstart(session):  # noqa: ARG001
         "OS": f"{platform.system()} {platform.release()}",
         "Sports Betting API": f"{sports_betting_api}",
         "Sports Betting UI": f"{sports_betting_ui}",
+        "Browser": session.config.getoption("--browser"),
+        "Window Width": os.environ.get("WINDOW_WIDTH", DEFAULT_WINDOW_WIDTH),
+        "Window Height": os.environ.get("WINDOW_HEIGHT", DEFAULT_WINDOW_HEIGHT),
     }
     with environment_file.open("w", encoding="utf-8") as f:
         for key, value in environment.items():
@@ -67,11 +87,14 @@ def pytest_sessionstart(session):  # noqa: ARG001
         json.dump(executor_info, f, indent=2)
 
 
-@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+@pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):  # noqa: ARG001
+    """Attach a browser screenshot to the Allure report when a UI test fails."""
     outcome = yield
     report = outcome.get_result()
-    setattr(item, f"rep_{report.when}", report)
+    driver = item.funcargs.get("driver")
+    if report.when == "call" and report.failed and driver:
+        attach_screenshot(driver, "Screenshot on failure")
 
 
 @pytest.fixture(scope="session")
@@ -105,16 +128,18 @@ def reset_balance(api_client: BettingApiClient) -> Iterator[None]:
         api_client.reset_balance()
 
 
+@pytest.fixture(scope="session")
+def driver_config(pytestconfig) -> DriverConfig:
+    return DriverConfig(
+        browser=pytestconfig.getoption("--browser").lower(),
+        headless=os.environ.get("HEADLESS", "true").lower() != "false",
+        window_width=int(os.environ.get("WINDOW_WIDTH", DEFAULT_WINDOW_WIDTH)),
+        window_height=int(os.environ.get("WINDOW_HEIGHT", DEFAULT_WINDOW_HEIGHT)),
+    )
+
+
 @pytest.fixture
-def driver(request) -> Iterator:
-    drv = build_chrome_driver()
+def driver(driver_config: DriverConfig) -> Iterator[WebDriver]:
+    drv = build_driver(driver_config)
     yield drv
-    failed = getattr(request.node, "rep_call", None) is not None and request.node.rep_call.failed
-    if failed:
-        SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)
-        screenshot = SCREENSHOT_DIR / f"{request.node.name}.png"
-        drv.save_screenshot(str(screenshot))
-        allure.attach.file(
-            str(screenshot), name="screenshot", attachment_type=allure.attachment_type.PNG
-        )
     drv.quit()

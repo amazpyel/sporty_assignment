@@ -21,8 +21,7 @@ class MatchListPage(BasePage):
     TEAM_NAME = (By.CSS_SELECTOR, ".teamName")
 
     def header_balance(self) -> Decimal:
-        text = self.wait().until(lambda d: d.find_element(*self.HEADER_BALANCE)).text
-        return parse_currency(text)
+        return parse_currency(self.text_of(self.HEADER_BALANCE))
 
     def find_first_upcoming_match(self) -> UpcomingMatch:
         cards = self.wait().until(lambda d: d.find_elements(*self.MATCH_CARD))
@@ -31,9 +30,9 @@ class MatchListPage(BasePage):
                 continue
             match_id = card.get_attribute("id").removeprefix("match-card-")
             home_team, away_team = (el.text for el in card.find_elements(*self.TEAM_NAME))
-            home_odds_text = self.driver.find_element(
-                By.CSS_SELECTOR, f"#odds-{match_id}-home .oddsButtonValue"
-            ).text
+            home_odds_text = self.text_of(
+                (By.CSS_SELECTOR, f"#odds-{match_id}-home .oddsButtonValue")
+            )
             return UpcomingMatch(
                 match_id=match_id,
                 home_team=home_team,
@@ -43,4 +42,4 @@ class MatchListPage(BasePage):
         raise ValueError("No match with an UPCOMING badge found on the page")
 
     def click_home_odds(self, match_id: str) -> None:
-        self.driver.find_element(By.ID, f"odds-{match_id}-home").click()
+        self.click((By.ID, f"odds-{match_id}-home"))

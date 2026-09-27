@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from selenium.webdriver.common.by import By
 
-from ui.pages.base_page import BasePage, parse_currency
+from ui.pages.base_page import DEFAULT_TIMEOUT, BasePage, parse_currency
 
 PLACING_BUTTON_CLASS = "placeBetButtonPlacing"
 
@@ -18,27 +18,25 @@ class BetSlip(BasePage):
     EMPTY_STATE = (By.CSS_SELECTOR, ".betSlipBodyEmpty")
 
     def enter_stake(self, value: str) -> None:
-        stake_input = self.driver.find_element(*self.STAKE_INPUT)
-        stake_input.clear()
-        stake_input.send_keys(value)
+        self.type_into(self.STAKE_INPUT, value)
 
     def selection_teams(self) -> str:
-        return self.driver.find_element(*self.SELECTION_TEAMS).text
+        return self.text_of(self.SELECTION_TEAMS)
 
     def selection_market(self) -> str:
-        return self.driver.find_element(*self.SELECTION_MARKET).text
+        return self.text_of(self.SELECTION_MARKET)
 
     def selection_odds(self) -> Decimal:
-        return parse_currency(self.driver.find_element(*self.SELECTION_ODDS).text)
+        return parse_currency(self.text_of(self.SELECTION_ODDS))
 
     def total_stake(self) -> Decimal:
-        return parse_currency(self.driver.find_element(*self.TOTAL_STAKE).text)
+        return parse_currency(self.text_of(self.TOTAL_STAKE))
 
     def potential_payout(self) -> Decimal:
-        return parse_currency(self.driver.find_element(*self.POTENTIAL_PAYOUT).text)
+        return parse_currency(self.text_of(self.POTENTIAL_PAYOUT))
 
     def click_place_bet(self) -> None:
-        self.driver.find_element(*self.PLACE_BET_BUTTON).click()
+        self.click(self.PLACE_BET_BUTTON)
 
     def is_placing(self) -> bool:
         """Best-effort check for the transient "Placing..." loading state.
@@ -46,10 +44,10 @@ class BetSlip(BasePage):
         Read once, right after click_place_bet(), with no extra sleep: on a
         fast/mocked API this state can resolve before a polled wait would
         even run, so a wait here would mask the very thing being checked.
+        That's why this reads the driver directly instead of using find().
         """
         button = self.driver.find_element(*self.PLACE_BET_BUTTON)
         return PLACING_BUTTON_CLASS in (button.get_attribute("class") or "")
 
     def is_empty(self) -> bool:
-        elements = self.driver.find_elements(*self.EMPTY_STATE)
-        return len(elements) > 0
+        return self.is_present(self.EMPTY_STATE, timeout=DEFAULT_TIMEOUT)

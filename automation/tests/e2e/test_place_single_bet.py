@@ -1,4 +1,3 @@
-from dataclasses import dataclass, fields
 from decimal import Decimal
 
 import allure
@@ -6,39 +5,13 @@ import pytest
 from selenium.webdriver.remote.webdriver import WebDriver
 
 from api_client.betting_client import BettingApiClient
+from ui.bet_flow_result import BetFlowResult
 from ui.pages.bet_slip import BetSlip
 from ui.pages.match_list_page import MatchListPage
 from ui.pages.receipt_modal import ReceiptModal
+from ui.reporting import attach_screenshot
 
 STAKE = Decimal("10.00")
-
-
-@dataclass
-class BetFlowResult:
-    slip_teams: str
-    slip_market: str
-    slip_odds: Decimal
-    slip_total_stake: Decimal
-    slip_potential_payout: Decimal
-    balance_before_bet: Decimal
-    placing_state_shown: bool
-    receipt_bet_id_present: bool
-    receipt_selection_shown: bool
-    receipt_match: str
-    receipt_stake: Decimal
-    receipt_odds: Decimal
-    receipt_payout: Decimal
-    receipt_timestamp_present: bool
-    slip_empty_after_close: bool
-    balance_after: Decimal
-
-
-def _mismatches(actual: BetFlowResult, expected: BetFlowResult) -> str:
-    return "\n".join(
-        f"  {f.name}: expected {getattr(expected, f.name)!r}, got {getattr(actual, f.name)!r}"
-        for f in fields(BetFlowResult)
-        if getattr(actual, f.name) != getattr(expected, f.name)
-    )
 
 
 @allure.feature("Single Bet Placement")
@@ -82,6 +55,7 @@ def test_place_single_bet(
         slip_total_stake = slip.total_stake()
         slip_potential_payout = slip.potential_payout()
         balance_before_bet = match_list.header_balance()
+        attach_screenshot(driver, "Bet slip")
 
     receipt = ReceiptModal(driver, base_ui_url)
     with allure.step("4. Click Place Bet and read the receipt"):
@@ -95,6 +69,7 @@ def test_place_single_bet(
         receipt_odds = receipt.odds()
         receipt_payout = receipt.payout()
         receipt_placed_at = receipt.placed_at()
+        attach_screenshot(driver, "Bet receipt")
 
     with allure.step("5. Close the receipt"):
         receipt.close()
@@ -147,5 +122,5 @@ def test_place_single_bet(
         )
         assert actual == expected, (
             f"Placed bet of {STAKE} on {expected_match_text} (home, odds {match.home_odds}) "
-            f"does not match the expected result:\n{_mismatches(actual, expected)}"
+            f"does not match the expected result:\n{actual.describe_mismatches(expected)}"
         )

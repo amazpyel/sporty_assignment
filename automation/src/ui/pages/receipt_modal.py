@@ -18,31 +18,31 @@ class ReceiptModal(BasePage):
     LABELS = (By.CSS_SELECTOR, ".modalLabel, .modalMicroLabel, .modalStrong")
 
     def wait_until_visible(self) -> None:
-        self.wait().until(lambda d: d.find_element(*MODAL_ROOT).is_displayed())
+        self.find(MODAL_ROOT)
 
     def bet_id(self) -> str:
-        return self.driver.find_element(*self.BET_ID).text
+        return self.text_of(self.BET_ID)
 
     def match(self) -> str:
-        return self.driver.find_element(*self.MATCH).text
+        return self.text_of(self.MATCH)
 
     def stake(self) -> Decimal:
-        return parse_currency(self.driver.find_element(*self.STAKE).text)
+        return parse_currency(self.text_of(self.STAKE))
 
     def odds(self) -> Decimal:
-        return parse_currency(self.driver.find_element(*self.ODDS).text)
+        return parse_currency(self.text_of(self.ODDS))
 
     def payout(self) -> Decimal:
-        return parse_currency(self.driver.find_element(*self.PAYOUT).text)
+        return parse_currency(self.text_of(self.PAYOUT))
 
     def placed_at(self) -> str:
-        return self.driver.find_element(*self.PLACED_AT).text
+        return self.text_of(self.PLACED_AT)
 
     def shows_selection_field(self) -> bool:
         """Spec 2.4 requires a Selection field on the receipt; there's no
         dedicated selector for it, so this scans the modal's own labels."""
-        labels = self.driver.find_element(*MODAL_ROOT).find_elements(*self.LABELS)
+        labels = self.find(MODAL_ROOT).find_elements(*self.LABELS)
         return any(label.text.strip().lower() == "selection" for label in labels)
 
     def close(self) -> None:
-        self.driver.find_element(*self.CLOSE_BUTTON).click()
+        self.click(self.CLOSE_BUTTON)
