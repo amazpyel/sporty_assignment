@@ -55,8 +55,15 @@ Requests.
 
 ## Recommendations if the project scales
 
-### 1. Run the tests in a CI/CD pipeline
+### 1. Dockerize the framework and run it in a CI/CD pipeline
 
+- Package the framework in a Docker image with Python, uv, the locked dependencies and a pinned
+  Chrome version. The tests then run the same way on any laptop and in CI, and a Chrome auto-update
+  cannot break a run. Configuration still comes from environment variables
+  (`docker run --env-file .env ...`), so no secrets are built into the image.
+- Add a Docker Compose file with a Selenium Grid (`selenium/hub` and browser nodes). The E2E tests
+  can then run in parallel and on more browsers. The driver factory already has one place to add a
+  remote Grid driver.
 - Run the API tests on every pull request. They are fast and need no browser.
 - Run the E2E tests after merge or nightly, against a dedicated test environment, with headless Chrome.
 - Publish the Allure report as a build artifact, so anyone can see the steps, screenshots and linked
